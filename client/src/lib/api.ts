@@ -46,6 +46,10 @@ export interface DashboardMetrics {
 
 const TOKEN_KEY = 'mams_token';
 
+/** Backend origin, e.g. https://server-rho-khaki.vercel.app — no trailing slash.
+ *  Leave empty in local dev to use the Vite `/api` proxy. */
+const API_BASE = String(import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -64,7 +68,8 @@ export async function api<T>(
   const token = getToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  const res = await fetch(path, { ...options, headers });
+  const url = path.startsWith('http') ? path : `${API_BASE}${path}`;
+  const res = await fetch(url, { ...options, headers });
   if (res.status === 204) {
     return undefined as T;
   }

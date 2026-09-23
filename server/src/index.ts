@@ -18,9 +18,28 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
 
+const allowedOrigins = (
+  process.env.CLIENT_ORIGIN ||
+  'http://localhost:5173,http://localhost:5174'
+)
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+    origin(origin, callback) {
+      // Allow non-browser clients (curl, server-to-server) with no Origin
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.includes(origin) ||
+        allowedOrigins.includes('*') ||
+        /^https:\/\/.*\.vercel\.app$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
   })
 );
