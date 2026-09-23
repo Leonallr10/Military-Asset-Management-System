@@ -8,6 +8,7 @@ import {
   AuthRequest,
   assertBaseAccess,
   baseScopeFilter,
+  routeParam,
 } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { writeAuditLog } from '../lib/audit.js';
@@ -146,7 +147,7 @@ transfersRouter.put(
       const user = req.user!;
       const body = updateSchema.parse(req.body);
       const existing = await prisma.transfer.findUnique({
-        where: { id: req.params.id },
+        where: { id: routeParam(req.params.id) },
       });
       if (!existing) throw new AppError('Transfer not found', 404);
       assertBaseAccess(user, existing.fromBaseId);
@@ -268,7 +269,7 @@ transfersRouter.delete(
     try {
       const user = req.user!;
       const existing = await prisma.transfer.findUnique({
-        where: { id: req.params.id },
+        where: { id: routeParam(req.params.id) },
       });
       if (!existing) throw new AppError('Transfer not found', 404);
       assertBaseAccess(user, existing.fromBaseId);

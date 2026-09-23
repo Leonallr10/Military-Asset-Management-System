@@ -8,6 +8,7 @@ import {
   AuthRequest,
   assertBaseAccess,
   baseScopeFilter,
+  routeParam,
 } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { writeAuditLog } from '../lib/audit.js';
@@ -116,7 +117,7 @@ assignmentsRouter.post(
     try {
       const user = req.user!;
       const existing = await prisma.assignment.findUnique({
-        where: { id: req.params.id },
+        where: { id: routeParam(req.params.id) },
       });
       if (!existing) throw new AppError('Assignment not found', 404);
       if (existing.returnedAt) throw new AppError('Already returned');
@@ -174,7 +175,7 @@ assignmentsRouter.put(
       const user = req.user!;
       const body = updateSchema.parse(req.body);
       const existing = await prisma.assignment.findUnique({
-        where: { id: req.params.id },
+        where: { id: routeParam(req.params.id) },
       });
       if (!existing) throw new AppError('Assignment not found', 404);
       if (existing.returnedAt) {
@@ -267,7 +268,7 @@ assignmentsRouter.delete(
     try {
       const user = req.user!;
       const existing = await prisma.assignment.findUnique({
-        where: { id: req.params.id },
+        where: { id: routeParam(req.params.id) },
       });
       if (!existing) throw new AppError('Assignment not found', 404);
       assertBaseAccess(user, existing.baseId);

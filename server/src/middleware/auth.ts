@@ -64,3 +64,13 @@ export function baseScopeFilter(user: AuthUser): { baseId?: string } {
   if (!user.baseId) throw new AppError('User is not assigned to a base', 403);
   return { baseId: user.baseId };
 }
+
+/** Normalize Express route params (string | string[]) to a single string. */
+export function routeParam(
+  value: string | string[] | undefined,
+  name = 'id'
+): string {
+  const resolved = Array.isArray(value) ? value[0] : value;
+  if (!resolved) throw new AppError(`Missing route parameter: ${name}`, 400);
+  return resolved;
+}

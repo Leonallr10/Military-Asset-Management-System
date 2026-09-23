@@ -8,6 +8,7 @@ import {
   AuthRequest,
   assertBaseAccess,
   baseScopeFilter,
+  routeParam,
 } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { writeAuditLog } from '../lib/audit.js';
@@ -116,7 +117,7 @@ expendituresRouter.put(
       const user = req.user!;
       const body = updateSchema.parse(req.body);
       const existing = await prisma.expenditure.findUnique({
-        where: { id: req.params.id },
+        where: { id: routeParam(req.params.id) },
       });
       if (!existing) throw new AppError('Expenditure not found', 404);
       assertBaseAccess(user, existing.baseId);
@@ -201,7 +202,7 @@ expendituresRouter.delete(
     try {
       const user = req.user!;
       const existing = await prisma.expenditure.findUnique({
-        where: { id: req.params.id },
+        where: { id: routeParam(req.params.id) },
       });
       if (!existing) throw new AppError('Expenditure not found', 404);
       assertBaseAccess(user, existing.baseId);
