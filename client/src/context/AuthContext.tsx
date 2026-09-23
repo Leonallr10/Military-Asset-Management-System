@@ -9,10 +9,27 @@ import {
 } from 'react';
 import { api, getToken, setToken, type Role, type User } from '../lib/api';
 
+export type RegisterInput = {
+  email: string;
+  password: string;
+  name: string;
+  rank?: string;
+  role: 'BASE_COMMANDER' | 'LOGISTICS_OFFICER';
+  baseId: string;
+};
+
+export type ChangePasswordInput = {
+  email: string;
+  currentPassword: string;
+  newPassword: string;
+};
+
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (input: RegisterInput) => Promise<void>;
+  changePassword: (input: ChangePasswordInput) => Promise<void>;
   logout: () => void;
   canPurchaseOrTransfer: boolean;
   canAssignOrExpend: boolean;
@@ -20,6 +37,11 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+function applySession(token: string, user: User, setUser: (u: User) => void) {
+  setToken(token);
+  setUser(user);
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -42,8 +64,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
-    setToken(res.token);
-    setUser(res.user);
+    applySession(res.token, res.user, setUser);
+  }, []);
+
+  const register = useCallback(async (input: RegisterInput) => {
+    const res = await api<{ token: string; user: User }>('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    applySession(res.token, res.user, setUser);
+  }, []);
+
+  const changePassword = useCallback(async (input: ChangePasswordInput) => {
+    const res = await api<{ token: string; user: User; message: string }>(
+      '/api/auth/change-password',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }
+    );
+    applySession(res.token, res.user, setUser);
   }, []);
 
   const logout = useCallback(() => {
@@ -57,6 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       login,
+      register,
+      changePassword,
       logout,
       isAdmin: role === 'ADMIN',
       canPurchaseOrTransfer:
@@ -65,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role === 'LOGISTICS_OFFICER',
       canAssignOrExpend: role === 'ADMIN' || role === 'BASE_COMMANDER',
     };
-  }, [user, loading, login, logout]);
+  }, [user, loading, login, register, changePassword, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

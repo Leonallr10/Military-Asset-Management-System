@@ -1,8 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-import type { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppLayout } from './components/AppLayout';
+import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { PurchasesPage } from './pages/PurchasesPage';
 import { TransfersPage } from './pages/TransfersPage';
@@ -20,9 +23,14 @@ function AppRoutes() {
 
   return (
     <Routes>
+      <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/change-password" element={<ChangePasswordPage />} />
+      <Route path="/forgot-password" element={<Navigate to="/change-password" replace />} />
+      <Route path="/reset-password" element={<Navigate to="/change-password" replace />} />
       <Route
-        path="/"
+        path="/app"
         element={
           <Protected>
             <AppLayout />
@@ -36,7 +44,7 @@ function AppRoutes() {
             canPurchaseOrTransfer ? (
               <PurchasesPage />
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to="/app" replace />
             )
           }
         />
@@ -46,7 +54,7 @@ function AppRoutes() {
             canPurchaseOrTransfer ? (
               <TransfersPage />
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to="/app" replace />
             )
           }
         />
@@ -56,7 +64,7 @@ function AppRoutes() {
             canAssignOrExpend ? (
               <AssignmentsPage />
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to="/app" replace />
             )
           }
         />

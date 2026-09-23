@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, Link } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import {
   LayoutDashboard,
@@ -125,7 +125,15 @@ export function AppLayout() {
         className={`sidebar ${mobileOpen ? 'open' : ''}`}
         aria-hidden={isMobile && !mobileOpen}
       >
-        <div className="brand">
+        <Link
+          to="/"
+          className="brand"
+          title="MAMS home"
+          aria-label="Go to MAMS home page"
+          onClick={() => {
+            if (isMobile) setMobileOpen(false);
+          }}
+        >
           <span className="brand-icon" aria-hidden>
             <Shield size={18} strokeWidth={2.2} />
           </span>
@@ -135,7 +143,7 @@ export function AppLayout() {
               <span className="brand-title">Asset Command</span>
             </div>
           )}
-        </div>
+        </Link>
 
         <nav
           className="nav-links"
@@ -143,24 +151,24 @@ export function AppLayout() {
             if (isMobile) setMobileOpen(false);
           }}
         >
-          <NavLink to="/" end title="Dashboard">
+          <NavLink to="/app" end title="Dashboard">
             <LayoutDashboard size={18} />
             {showLabels && <span>Dashboard</span>}
           </NavLink>
           {canPurchaseOrTransfer && (
-            <NavLink to="/purchases" title="Purchases">
+            <NavLink to="/app/purchases" title="Purchases">
               <ShoppingCart size={18} />
               {showLabels && <span>Purchases</span>}
             </NavLink>
           )}
           {canPurchaseOrTransfer && (
-            <NavLink to="/transfers" title="Transfers">
+            <NavLink to="/app/transfers" title="Transfers">
               <ArrowLeftRight size={18} />
               {showLabels && <span>Transfers</span>}
             </NavLink>
           )}
           {canAssignOrExpend && (
-            <NavLink to="/assignments" title="Assignments & Expenditures">
+            <NavLink to="/app/assignments" title="Assignments & Expenditures">
               <Users size={18} />
               {showLabels && <span>Assignments & Expenditures</span>}
             </NavLink>
