@@ -1,0 +1,181 @@
+// Military Asset Management System – Prisma Schema
+// Relational model: balances, movements, assignments need ACID + referential integrity.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  BASE_COMMANDER
+  LOGISTICS_OFFICER
+}
+
+enum EquipmentType {
+  VEHICLE
+  WEAPON
+  AMMUNITION
+  OTHER
+}
+
+enum TransferStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+model Base {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String   @unique
+  location    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  purchases   Purchase[]
+  transfersOut Transfer[] @relation("TransferFrom")
+  transfersIn  Transfer[] @relation("TransferTo")
+  assignments Assignment[]
+  expenditures Expenditure[]
+  balances    InventoryBalance[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  rank         String?
+  role         Role
+  baseId       String?
+  base         Base?    @relation(fields: [baseId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  purchasesCreated    Purchase[]     @relation("PurchaseCreator")
+  transfersCreated    Transfer[]     @relation("TransferCreator")
+  assignmentsCreated  Assignment[]   @relation("AssignmentCreator")
+  expendituresCreated Expenditure[]  @relation("ExpenditureCreator")
+  auditLogs           AuditLog[]
+}
+
+model Asset {
+  id            String        @id @default(cuid())
+  name          String
+  equipmentType EquipmentType
+  unit          String        @default("unit")
+  serialPrefix  String?
+  description   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  purchases    Purchase[]
+  transfers    Transfer[]
+  assignments  Assignment[]
+  expenditures Expenditure[]
+  balances     InventoryBalance[]
+}
+
+// Running inventory per base + asset
+model InventoryBalance {
+  id        String   @id @default(cuid())
+  baseId    String
+  assetId   String
+  quantity  Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  base  Base  @relation(fields: [baseId], references: [id])
+  asset Asset @relation(fields: [assetId], references: [id])
+
+  @@unique([baseId, assetId])
+}
+
+model Purchase {
+  id          String   @id @default(cuid())
+  baseId      String
+  assetId     String
+  quantity    Int
+  unitCost    Float?
+  purchasedAt DateTime @default(now())
+  vendor      String?
+  notes       String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  base      Base @relation(fields: [baseId], references: [id])
+  asset     Asset @relation(fields: [assetId], references: [id])
+  createdBy User  @relation("PurchaseCreator", fields: [createdById], references: [id])
+}
+
+model Transfer {
+  id            String         @id @default(cuid())
+  fromBaseId    String
+  toBaseId      String
+  assetId       String
+  quantity      Int
+  status        TransferStatus @default(COMPLETED)
+  transferredAt DateTime       @default(now())
+  notes         String?
+  createdById   String
+  createdAt     DateTime       @default(now())
+
+  fromBase  Base  @relation("TransferFrom", fields: [fromBaseId], references: [id])
+  toBase    Base  @relation("TransferTo", fields: [toBaseId], references: [id])
+  asset     Asset @relation(fields: [assetId], references: [id])
+  createdBy User  @relation("TransferCreator", fields: [createdById], references: [id])
+}
+
+model Assignment {
+  id           String    @id @default(cuid())
+  baseId       String
+  assetId      String
+  quantity     Int
+  personnelName String
+  personnelId  String?
+  assignedAt   DateTime  @default(now())
+  returnedAt   DateTime?
+  notes        String?
+  createdById  String
+  createdAt    DateTime  @default(now())
+
+  base      Base  @relation(fields: [baseId], references: [id])
+  asset     Asset @relation(fields: [assetId], references: [id])
+  createdBy User  @relation("AssignmentCreator", fields: [createdById], references: [id])
+}
+
+model Expenditure {
+  id           String   @id @default(cuid())
+  baseId       String
+  assetId      String
+  quantity     Int
+  reason       String
+  expendedAt   DateTime @default(now())
+  notes        String?
+  createdById  String
+  createdAt    DateTime @default(now())
+
+  base      Base  @relation(fields: [baseId], references: [id])
+  asset     Asset @relation(fields: [assetId], references: [id])
+  createdBy User  @relation("ExpenditureCreator", fields: [createdById], references: [id])
+}
+
+// Immutable audit trail for all mutating transactions
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String?
+  details    String
+  userId     String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
