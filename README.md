@@ -2,6 +2,15 @@
 
 Initial framework for tracking critical assets (vehicles, weapons, ammunition) across multiple bases — with balance metrics, transfers, assignments/expenditures, and role-based access control.
 
+## Live deployments
+
+| Layer | URL |
+| --- | --- |
+| **Frontend** | [https://client-rho-bice-67.vercel.app/](https://client-rho-bice-67.vercel.app/) |
+| **Backend** | [https://server-rho-khaki.vercel.app/](https://server-rho-khaki.vercel.app/) |
+
+Health check: [https://server-rho-khaki.vercel.app/api/health](https://server-rho-khaki.vercel.app/api/health)
+
 ## Stack & justifications
 
 | Layer | Choice | Why |
