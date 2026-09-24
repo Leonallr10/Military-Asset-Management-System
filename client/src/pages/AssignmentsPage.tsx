@@ -48,6 +48,11 @@ export function AssignmentsPage() {
   const [error, setError] = useState('');
   const [editingAssignId, setEditingAssignId] = useState<string | null>(null);
   const [editingExpendId, setEditingExpendId] = useState<string | null>(null);
+  const [filterBaseId, setFilterBaseId] = useState(user?.baseId || '');
+  const [equipmentType, setEquipmentType] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [activeOnly, setActiveOnly] = useState(false);
 
   const [assignForm, setAssignForm] = useState({
     baseId: user?.baseId || '',
@@ -66,13 +71,37 @@ export function AssignmentsPage() {
     notes: '',
   });
 
-  const assignPagination = usePagination(assignments);
-  const expendPagination = usePagination(expenditures);
+  const assignPagination = usePagination(assignments, {
+    resetKey: `a|${filterBaseId}|${equipmentType}|${dateFrom}|${dateTo}|${activeOnly}`,
+  });
+  const expendPagination = usePagination(expenditures, {
+    resetKey: `e|${filterBaseId}|${equipmentType}|${dateFrom}|${dateTo}`,
+  });
 
   function load() {
+    const assignParams = new URLSearchParams();
+    const expendParams = new URLSearchParams();
+    if (filterBaseId) {
+      assignParams.set('baseId', filterBaseId);
+      expendParams.set('baseId', filterBaseId);
+    }
+    if (equipmentType) {
+      assignParams.set('equipmentType', equipmentType);
+      expendParams.set('equipmentType', equipmentType);
+    }
+    if (dateFrom) {
+      assignParams.set('dateFrom', dateFrom);
+      expendParams.set('dateFrom', dateFrom);
+    }
+    if (dateTo) {
+      assignParams.set('dateTo', dateTo);
+      expendParams.set('dateTo', dateTo);
+    }
+    if (activeOnly) assignParams.set('activeOnly', 'true');
+
     Promise.all([
-      api<Assignment[]>('/api/assignments'),
-      api<Expenditure[]>('/api/expenditures'),
+      api<Assignment[]>(`/api/assignments?${assignParams}`),
+      api<Expenditure[]>(`/api/expenditures?${expendParams}`),
     ])
       .then(([a, e]) => {
         setAssignments(a);
@@ -100,8 +129,11 @@ export function AssignmentsPage() {
         }));
       }
     );
-    load();
   }, [user?.baseId]);
+
+  useEffect(() => {
+    load();
+  }, [filterBaseId, equipmentType, dateFrom, dateTo, activeOnly]);
 
   function startEditAssign(r: Assignment) {
     if (r.returnedAt) return;
@@ -276,6 +308,66 @@ export function AssignmentsPage() {
       </div>
 
       {error && <div className="error-banner">{error}</div>}
+
+      <div className="filters">
+        {isAdmin && (
+          <div className="field">
+            <label>Base</label>
+            <select
+              value={filterBaseId}
+              onChange={(e) => setFilterBaseId(e.target.value)}
+            >
+              <option value="">All</option>
+              {bases.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div className="field">
+          <label>Equipment type</label>
+          <select
+            value={equipmentType}
+            onChange={(e) => setEquipmentType(e.target.value)}
+          >
+            <option value="">All</option>
+            <option value="VEHICLE">Vehicle</option>
+            <option value="WEAPON">Weapon</option>
+            <option value="AMMUNITION">Ammunition</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+        <div className="field">
+          <label>From</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label>To</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
+        </div>
+        {tab === 'assign' && (
+          <div className="field">
+            <label>Status</label>
+            <select
+              value={activeOnly ? 'active' : 'all'}
+              onChange={(e) => setActiveOnly(e.target.value === 'active')}
+            >
+              <option value="all">All</option>
+              <option value="active">Active only</option>
+            </select>
+          </div>
+        )}
+      </div>
 
       <div className="tabs">
         <button

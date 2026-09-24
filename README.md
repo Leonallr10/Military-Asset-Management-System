@@ -47,7 +47,8 @@ NoSQL would force application-level consistency for multi-document updates and w
   - **Admin** — all bases & operations  
   - **Base Commander** — own base; purchases, transfers, assignments, expenditures  
   - **Logistics Officer** — own base; purchases & transfers only  
-- **API audit log** — every login and mutating transaction written to `AuditLog`.
+- **API audit log** — every login and mutating transaction written to `AuditLog`; **Audit log** page for Admin / Base Commander (`/app/audit`).
+- Opening / closing balances reconstructed from current stock by reversing ledger movements after the selected dates.
 
 ## Project layout
 
@@ -110,7 +111,7 @@ Net Movement for a period:
 
 `Purchases + Transfers In − Transfers Out`
 
-Opening balance is derived relative to closing stock and period movements (see dashboard route).
+Opening balance is reconstructed as on-hand inventory at the start of the selected period (current stock reversed by all ledger movements after that instant). Closing balance is inventory as of the period end date.
 
 ## Security notes (framework)
 

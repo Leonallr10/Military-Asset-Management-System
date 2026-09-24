@@ -1,8 +1,9 @@
 ﻿import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, ShieldCheck } from 'lucide-react';
+import { Mail, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AuthLinks, AuthShell } from '../components/AuthShell';
+import { PasswordField } from '../components/PasswordField';
 
 export function ChangePasswordPage() {
   const { user, changePassword } = useAuth();
@@ -61,45 +62,33 @@ export function ChangePasswordPage() {
             placeholder="you@base.mil"
           />
         </div>
-        <div className="field field-with-icon">
-          <label htmlFor="current-password">Current password</label>
-          <Lock size={16} className="field-icon" />
-          <input
-            id="current-password"
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-          />
-        </div>
-        <div className="field field-with-icon">
-          <label htmlFor="new-password">New password</label>
-          <Lock size={16} className="field-icon" />
-          <input
-            id="new-password"
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            required
-            minLength={8}
-            autoComplete="new-password"
-            placeholder="Min 8 chars, letter + number"
-          />
-        </div>
-        <div className="field field-with-icon">
-          <label htmlFor="confirm-password">Confirm new password</label>
-          <Lock size={16} className="field-icon" />
-          <input
-            id="confirm-password"
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            required
-            minLength={8}
-            autoComplete="new-password"
-          />
-        </div>
+        <PasswordField
+          id="current-password"
+          label="Current password"
+          value={currentPassword}
+          onChange={setCurrentPassword}
+          required
+          autoComplete="current-password"
+        />
+        <PasswordField
+          id="new-password"
+          label="New password"
+          value={newPassword}
+          onChange={setNewPassword}
+          required
+          minLength={8}
+          autoComplete="new-password"
+          placeholder="Min 8 chars, letter + number"
+        />
+        <PasswordField
+          id="confirm-password"
+          label="Confirm new password"
+          value={confirm}
+          onChange={setConfirm}
+          required
+          minLength={8}
+          autoComplete="new-password"
+        />
         <button className="btn btn-primary" type="submit" disabled={submitting}>
           <ShieldCheck size={16} />
           {submitting ? 'Updating…' : 'Update password'}

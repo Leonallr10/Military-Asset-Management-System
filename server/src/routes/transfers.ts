@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { Role } from '@prisma/client';
+import { EquipmentType, Role } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import {
   authenticate,
@@ -29,10 +29,15 @@ const createSchema = z.object({
 transfersRouter.get('/', async (req: AuthRequest, res, next) => {
   try {
     const user = req.user!;
-    const { baseId, dateFrom, dateTo } = req.query as Record<string, string | undefined>;
+    const { baseId, dateFrom, dateTo, equipmentType } = req.query as Record<
+      string,
+      string | undefined
+    >;
     if (baseId) assertBaseAccess(user, baseId);
     const scope = baseScopeFilter(user);
     const scopedBase = baseId || scope.baseId;
+
+    const to = dateTo ? endOfDay(new Date(dateTo)) : undefined;
 
     const rows = await prisma.transfer.findMany({
       where: {
@@ -43,8 +48,11 @@ transfersRouter.get('/', async (req: AuthRequest, res, next) => {
           : {}),
         transferredAt: {
           gte: dateFrom ? new Date(dateFrom) : undefined,
-          lte: dateTo ? new Date(dateTo) : undefined,
+          lte: to,
         },
+        ...(equipmentType
+          ? { asset: { equipmentType: equipmentType as EquipmentType } }
+          : {}),
       },
       include: {
         asset: true,
@@ -59,6 +67,12 @@ transfersRouter.get('/', async (req: AuthRequest, res, next) => {
     next(err);
   }
 });
+
+function endOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
 
 transfersRouter.post(
   '/',

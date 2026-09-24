@@ -2,7 +2,6 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import {
   Mail,
-  Lock,
   UserPlus,
   User,
   MapPin,
@@ -11,6 +10,7 @@ import {
 import { api, type Base } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { AuthLinks, AuthShell } from '../components/AuthShell';
+import { PasswordField } from '../components/PasswordField';
 
 export function RegisterPage() {
   const { user, loading, register } = useAuth();
@@ -172,33 +172,25 @@ export function RegisterPage() {
             Retry loading bases
           </button>
         )}
-        <div className="field field-with-icon">
-          <label htmlFor="reg-password">Password</label>
-          <Lock size={16} className="field-icon" />
-          <input
-            id="reg-password"
-            type="password"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            required
-            minLength={8}
-            autoComplete="new-password"
-            placeholder="Min 8 chars, letter + number"
-          />
-        </div>
-        <div className="field field-with-icon">
-          <label htmlFor="confirm">Confirm password</label>
-          <Lock size={16} className="field-icon" />
-          <input
-            id="confirm"
-            type="password"
-            value={form.confirm}
-            onChange={(e) => setForm({ ...form, confirm: e.target.value })}
-            required
-            minLength={8}
-            autoComplete="new-password"
-          />
-        </div>
+        <PasswordField
+          id="reg-password"
+          label="Password"
+          value={form.password}
+          onChange={(password) => setForm({ ...form, password })}
+          required
+          minLength={8}
+          autoComplete="new-password"
+          placeholder="Min 8 chars, letter + number"
+        />
+        <PasswordField
+          id="confirm"
+          label="Confirm password"
+          value={form.confirm}
+          onChange={(confirm) => setForm({ ...form, confirm })}
+          required
+          minLength={8}
+          autoComplete="new-password"
+        />
         <button
           className="btn btn-primary"
           type="submit"

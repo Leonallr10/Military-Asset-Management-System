@@ -10,6 +10,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { PurchasesPage } from './pages/PurchasesPage';
 import { TransfersPage } from './pages/TransfersPage';
 import { AssignmentsPage } from './pages/AssignmentsPage';
+import { AuditPage } from './pages/AuditPage';
 
 function Protected({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -19,7 +20,8 @@ function Protected({ children }: { children: ReactNode }) {
 }
 
 function AppRoutes() {
-  const { canPurchaseOrTransfer, canAssignOrExpend } = useAuth();
+  const { canPurchaseOrTransfer, canAssignOrExpend, isAdmin, user } = useAuth();
+  const canViewAudit = isAdmin || user?.role === 'BASE_COMMANDER';
 
   return (
     <Routes>
@@ -27,8 +29,14 @@ function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/change-password" element={<ChangePasswordPage />} />
-      <Route path="/forgot-password" element={<Navigate to="/change-password" replace />} />
-      <Route path="/reset-password" element={<Navigate to="/change-password" replace />} />
+      <Route
+        path="/forgot-password"
+        element={<Navigate to="/change-password" replace />}
+      />
+      <Route
+        path="/reset-password"
+        element={<Navigate to="/change-password" replace />}
+      />
       <Route
         path="/app"
         element={
@@ -66,6 +74,12 @@ function AppRoutes() {
             ) : (
               <Navigate to="/app" replace />
             )
+          }
+        />
+        <Route
+          path="audit"
+          element={
+            canViewAudit ? <AuditPage /> : <Navigate to="/app" replace />
           }
         />
       </Route>

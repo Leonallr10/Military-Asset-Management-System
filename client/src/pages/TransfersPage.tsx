@@ -40,6 +40,9 @@ export function TransfersPage() {
   const [bases, setBases] = useState<Base[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [baseId, setBaseId] = useState(user?.baseId || '');
+  const [equipmentType, setEquipmentType] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<TransferForm>({
@@ -50,11 +53,16 @@ export function TransfersPage() {
     notes: '',
   });
 
-  const pagination = usePagination(rows, { resetKey: baseId });
+  const pagination = usePagination(rows, {
+    resetKey: `${baseId}|${equipmentType}|${dateFrom}|${dateTo}`,
+  });
 
   function load() {
     const params = new URLSearchParams();
     if (baseId) params.set('baseId', baseId);
+    if (equipmentType) params.set('equipmentType', equipmentType);
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
     api<Transfer[]>(`/api/transfers?${params}`)
       .then(setRows)
       .catch((e) => setError(e.message));
@@ -79,7 +87,7 @@ export function TransfersPage() {
 
   useEffect(() => {
     load();
-  }, [baseId]);
+  }, [baseId, equipmentType, dateFrom, dateTo]);
 
   function startEdit(r: Transfer) {
     setEditingId(r.id);
@@ -245,10 +253,10 @@ export function TransfersPage() {
         </div>
       )}
 
-      {isAdmin && (
-        <div className="filters">
+      <div className="filters">
+        {isAdmin && (
           <div className="field">
-            <label>Filter by base</label>
+            <label>Base</label>
             <select value={baseId} onChange={(e) => setBaseId(e.target.value)}>
               <option value="">All</option>
               {bases.map((b) => (
@@ -258,8 +266,37 @@ export function TransfersPage() {
               ))}
             </select>
           </div>
+        )}
+        <div className="field">
+          <label>Equipment type</label>
+          <select
+            value={equipmentType}
+            onChange={(e) => setEquipmentType(e.target.value)}
+          >
+            <option value="">All</option>
+            <option value="VEHICLE">Vehicle</option>
+            <option value="WEAPON">Weapon</option>
+            <option value="AMMUNITION">Ammunition</option>
+            <option value="OTHER">Other</option>
+          </select>
         </div>
-      )}
+        <div className="field">
+          <label>From</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label>To</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
+        </div>
+      </div>
 
       <div className="panel">
         <div className="panel-header">

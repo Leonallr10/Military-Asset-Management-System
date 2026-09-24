@@ -1,8 +1,9 @@
 ﻿import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { Mail, Lock, LogIn } from 'lucide-react';
+import { Mail, LogIn } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AuthLinks, AuthShell } from '../components/AuthShell';
+import { PasswordField } from '../components/PasswordField';
 
 export function LoginPage() {
   const { user, loading, login } = useAuth();
@@ -40,13 +41,13 @@ export function LoginPage() {
               Demo accounts (password <code>Password123!</code>):
             </div>
             <div>
-              <code>admin@mams.mil</code> â€” Admin
+              <code>admin@mams.mil</code> — Admin
             </div>
             <div>
-              <code>commander.fax@mams.mil</code> â€” Base Commander
+              <code>commander.fax@mams.mil</code> — Base Commander
             </div>
             <div>
-              <code>logistics.fax@mams.mil</code> â€” Logistics Officer
+              <code>logistics.fax@mams.mil</code> — Logistics Officer
             </div>
           </div>
         </>
@@ -67,18 +68,14 @@ export function LoginPage() {
             placeholder="you@base.mil"
           />
         </div>
-        <div className="field field-with-icon">
-          <label htmlFor="password">Password</label>
-          <Lock size={16} className="field-icon" />
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-          />
-        </div>
+        <PasswordField
+          id="password"
+          label="Password"
+          value={password}
+          onChange={setPassword}
+          required
+          autoComplete="current-password"
+        />
         <div className="auth-form-meta">
           <Link to="/change-password" className="auth-text-link">
             Change password
@@ -86,10 +83,9 @@ export function LoginPage() {
         </div>
         <button className="btn btn-primary" type="submit" disabled={submitting}>
           <LogIn size={16} />
-          {submitting ? 'Signing inâ€¦' : 'Sign in'}
+          {submitting ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
     </AuthShell>
   );
 }
-

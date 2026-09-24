@@ -11,6 +11,7 @@ import {
   MapPin,
   PanelLeftClose,
   PanelLeftOpen,
+  ScrollText,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -45,7 +46,9 @@ function useIsMobile(breakpoint = 860) {
 }
 
 export function AppLayout() {
-  const { user, logout, canPurchaseOrTransfer, canAssignOrExpend } = useAuth();
+  const { user, logout, canPurchaseOrTransfer, canAssignOrExpend, isAdmin } =
+    useAuth();
+  const canViewAudit = isAdmin || user?.role === 'BASE_COMMANDER';
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -171,6 +174,12 @@ export function AppLayout() {
             <NavLink to="/app/assignments" title="Assignments & Expenditures">
               <Users size={18} />
               {showLabels && <span>Assignments & Expenditures</span>}
+            </NavLink>
+          )}
+          {canViewAudit && (
+            <NavLink to="/app/audit" title="Audit log">
+              <ScrollText size={18} />
+              {showLabels && <span>Audit log</span>}
             </NavLink>
           )}
         </nav>
