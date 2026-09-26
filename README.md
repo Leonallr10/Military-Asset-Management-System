@@ -83,22 +83,414 @@ Password for all: `Password123!`
 | Base Commander (Fort Apex) | `commander.fax@mams.mil` |
 | Logistics Officer (Fort Apex) | `logistics.fax@mams.mil` |
 
-## Key API routes
+## API documentation
 
-| Method | Path | Notes |
-| --- | --- | --- |
-| POST | `/api/auth/login` | JWT |
-| GET | `/api/auth/me` | Current user |
-| GET | `/api/dashboard/metrics` | Filters: `baseId`, `equipmentType`, `dateFrom`, `dateTo` |
-| GET | `/api/dashboard/net-movement-detail` | Bonus popup data |
-| GET/POST | `/api/purchases` | Logistics+ |
-| GET/POST | `/api/transfers` | Logistics+ |
-| GET/POST | `/api/assignments` | Commander+ |
-| POST | `/api/assignments/:id/return` | Commander+ |
-| GET/POST | `/api/expenditures` | Commander+ |
-| GET | `/api/audit` | Admin / Commander |
+**Base URL (local):** `http://localhost:4000`  
+**Base URL (prod):** `https://server-rho-khaki.vercel.app`
 
-All protected routes require `Authorization: Bearer <token>`.
+**Auth header (protected routes):**
+
+```http
+Authorization: Bearer <jwt>
+Content-Type: application/json
+```
+
+**Roles:** `ADMIN` · `BASE_COMMANDER` · `LOGISTICS_OFFICER`  
+**Equipment types:** `VEHICLE` · `WEAPON` · `AMMUNITION` · `OTHER`  
+**Error shape (all failures):** `{ "error": "message" }`
+
+| Role | Purchases / Transfers | Assignments / Expenditures | Audit |
+| --- | --- | --- | --- |
+| Admin | All bases | All bases | All |
+| Base Commander | Own base | Own base | Own actions |
+| Logistics Officer | Own base | — | — |
+
+Non-admin users are base-scoped via JWT `baseId`. Dates are ISO-8601 strings.
+
+---
+
+### Health
+
+#### `GET /api/health` — Public
+
+**Response `200`**
+
+```json
+{ "status": "ok", "service": "mams-api" }
+```
+
+---
+
+### Auth
+
+#### `POST /api/auth/login` — Public
+
+**Request**
+
+```json
+{ "email": "admin@mams.mil", "password": "Password123!" }
+```
+
+**Response `200`**
+
+```json
+{
+  "token": "<jwt>",
+  "user": {
+    "id": "clx…",
+    "email": "admin@mams.mil",
+    "role": "ADMIN",
+    "baseId": null,
+    "name": "System Admin",
+    "rank": null,
+    "base": null
+  }
+}
+```
+
+**Errors:** `401` invalid credentials · `400` validation
+
+#### `POST /api/auth/register` — Public
+
+Creates `BASE_COMMANDER` or `LOGISTICS_OFFICER` only (Admin is seeded).
+
+**Request**
+
+```json
+{
+  "email": "officer@mams.mil",
+  "password": "Password123!",
+  "name": "Jane Doe",
+  "rank": "Capt",
+  "role": "LOGISTICS_OFFICER",
+  "baseId": "clx…"
+}
+```
+
+Password: min 8 chars, must include a letter and a number. `rank` optional.
+
+**Response `201`** — same shape as login (`token` + `user` with `base`).
+
+**Errors:** `409` email exists · `400` base not found / validation
+
+#### `POST /api/auth/change-password` — Public
+
+**Request**
+
+```json
+{
+  "email": "admin@mams.mil",
+  "currentPassword": "Password123!",
+  "newPassword": "NewPass456!"
+}
+```
+
+**Response `200`**
+
+```json
+{
+  "message": "Password updated successfully",
+  "token": "<jwt>",
+  "user": { "id": "…", "email": "…", "role": "…", "baseId": null, "name": "…", "rank": null, "base": null }
+}
+```
+
+**Errors:** `401` bad email/current password · `400` new equals current / validation
+
+#### `GET /api/auth/me` — Bearer
+
+**Response `200`**
+
+```json
+{
+  "id": "clx…",
+  "email": "admin@mams.mil",
+  "name": "System Admin",
+  "rank": null,
+  "role": "ADMIN",
+  "baseId": null,
+  "base": null
+}
+```
+
+---
+
+### Bases & assets
+
+#### `GET /api/bases/public` — Public
+
+Used by the registration form.
+
+**Response `200`**
+
+```json
+[
+  { "id": "clx…", "name": "Fort Apex", "code": "FAX", "location": "…" }
+]
+```
+
+#### `GET /api/bases` — Bearer (any role)
+
+**Response `200`** — full `Base` rows (`id`, `name`, `code`, `location`, `createdAt`, `updatedAt`).
+
+#### `GET /api/assets` — Bearer (any role)
+
+**Response `200`**
+
+```json
+[
+  {
+    "id": "clx…",
+    "name": "M4 Carbine",
+    "equipmentType": "WEAPON",
+    "unit": "unit",
+    "serialPrefix": "M4",
+    "description": null,
+    "createdAt": "…",
+    "updatedAt": "…"
+  }
+]
+```
+
+---
+
+### Dashboard
+
+Shared query params (optional): `baseId`, `equipmentType`, `dateFrom`, `dateTo`  
+Defaults: current calendar month to today; non-admin forced to own base.
+
+#### `GET /api/dashboard/metrics` — Bearer
+
+**Example:** `/api/dashboard/metrics?baseId=…&equipmentType=WEAPON&dateFrom=2026-09-01&dateTo=2026-09-26`
+
+**Response `200`**
+
+```json
+{
+  "filters": {
+    "baseId": "clx…",
+    "equipmentType": "WEAPON",
+    "dateFrom": "2026-09-01T00:00:00.000Z",
+    "dateTo": "2026-09-26T23:59:59.999Z"
+  },
+  "metrics": {
+    "openingBalance": 100,
+    "closingBalance": 120,
+    "netMovement": 25,
+    "purchases": 30,
+    "transferIn": 5,
+    "transferOut": 10,
+    "assigned": 8,
+    "expended": 2
+  }
+}
+```
+
+`netMovement` = `purchases + transferIn − transferOut`.
+
+#### `GET /api/dashboard/net-movement-detail` — Bearer
+
+Same query params as metrics.
+
+**Response `200`**
+
+```json
+{
+  "purchases": [ { "id": "…", "quantity": 10, "asset": {…}, "base": {…}, "createdBy": { "name": "…" }, "…": "…" } ],
+  "transferIn": [ { "id": "…", "fromBase": {…}, "toBase": {…}, "asset": {…}, "…" : "…" } ],
+  "transferOut": [ { "…" : "…" } ]
+}
+```
+
+---
+
+### Purchases — Bearer · `ADMIN` | `BASE_COMMANDER` | `LOGISTICS_OFFICER`
+
+#### `GET /api/purchases`
+
+**Query:** `baseId`, `equipmentType`, `dateFrom`, `dateTo` (all optional)
+
+**Response `200`** — array of purchases with `asset`, `base`, `createdBy` (`id`, `name`, `email`).
+
+#### `POST /api/purchases`
+
+**Request**
+
+```json
+{
+  "baseId": "clx…",
+  "assetId": "clx…",
+  "quantity": 50,
+  "unitCost": 1200.5,
+  "purchasedAt": "2026-09-20T10:00:00.000Z",
+  "vendor": "Acme Arms",
+  "notes": "Q3 restock"
+}
+```
+
+`unitCost`, `purchasedAt`, `vendor`, `notes` optional. Increments inventory atomically.
+
+**Response `201`** — created purchase with `asset`, `base`.
+
+#### `PUT /api/purchases/:id`
+
+**Request** — any subset of create fields (partial update). Reverses old inventory impact, applies new.
+
+**Response `200`** — updated purchase.
+
+#### `DELETE /api/purchases/:id`
+
+**Response `204`** — empty body. Fails if inventory would go negative.
+
+---
+
+### Transfers — Bearer · `ADMIN` | `BASE_COMMANDER` | `LOGISTICS_OFFICER`
+
+Officers/commanders may only transfer **from** their own base.
+
+#### `GET /api/transfers`
+
+**Query:** `baseId`, `equipmentType`, `dateFrom`, `dateTo`  
+When `baseId` is set (or scoped), returns transfers where that base is source **or** destination.
+
+**Response `200`** — array with `asset`, `fromBase`, `toBase`, `createdBy`.
+
+#### `POST /api/transfers`
+
+**Request**
+
+```json
+{
+  "fromBaseId": "clx…",
+  "toBaseId": "clx…",
+  "assetId": "clx…",
+  "quantity": 10,
+  "transferredAt": "2026-09-21T12:00:00.000Z",
+  "notes": "Resupply"
+}
+```
+
+`transferredAt`, `notes` optional. `fromBaseId` ≠ `toBaseId`. Status set to `COMPLETED`.
+
+**Response `201`** — transfer with `asset`, `fromBase`, `toBase`.
+
+**Errors:** `400` insufficient inventory / same base
+
+#### `PUT /api/transfers/:id` · `DELETE /api/transfers/:id`
+
+Partial body for PUT (same fields as create). DELETE → `204`. Both reverse/reapply inventory in a transaction.
+
+---
+
+### Assignments — Bearer · `ADMIN` | `BASE_COMMANDER`
+
+#### `GET /api/assignments`
+
+**Query:** `baseId`, `equipmentType`, `dateFrom`, `dateTo`, `activeOnly=true` (only `returnedAt: null`)
+
+**Response `200`** — array with `asset`, `base`, `createdBy` (`id`, `name`).
+
+#### `POST /api/assignments`
+
+**Request**
+
+```json
+{
+  "baseId": "clx…",
+  "assetId": "clx…",
+  "quantity": 2,
+  "personnelName": "Sgt. Rivera",
+  "personnelId": "P-1024",
+  "assignedAt": "2026-09-22T08:00:00.000Z",
+  "notes": "Patrol kit"
+}
+```
+
+`personnelId`, `assignedAt`, `notes` optional. Decrements on-hand stock (reserved).
+
+**Response `201`** — assignment with `asset`, `base`.
+
+#### `POST /api/assignments/:id/return`
+
+No body. Sets `returnedAt` and restores inventory.
+
+**Response `200`** — updated assignment.
+
+**Errors:** `400` already returned · `404` not found
+
+#### `PUT /api/assignments/:id` · `DELETE /api/assignments/:id`
+
+Cannot edit a returned assignment. DELETE restores stock if still active → `204`.
+
+---
+
+### Expenditures — Bearer · `ADMIN` | `BASE_COMMANDER`
+
+#### `GET /api/expenditures`
+
+**Query:** `baseId`, `equipmentType`, `dateFrom`, `dateTo`
+
+**Response `200`** — array with `asset`, `base`, `createdBy`.
+
+#### `POST /api/expenditures`
+
+**Request**
+
+```json
+{
+  "baseId": "clx…",
+  "assetId": "clx…",
+  "quantity": 5,
+  "reason": "Live-fire exercise",
+  "expendedAt": "2026-09-23T16:00:00.000Z",
+  "notes": "Range day"
+}
+```
+
+`expendedAt`, `notes` optional. Permanently decrements inventory.
+
+**Response `201`** — expenditure with `asset`, `base`.
+
+#### `PUT /api/expenditures/:id` · `DELETE /api/expenditures/:id`
+
+Partial update / delete with inventory reverse+reapply. DELETE → `204`.
+
+---
+
+### Audit — Bearer · `ADMIN` | `BASE_COMMANDER`
+
+#### `GET /api/audit`
+
+**Query:** `limit` (default 100, max 500), `action`, `entityType`, `dateFrom`, `dateTo`  
+Base commanders only see rows where `userId` is themselves.
+
+**Response `200`**
+
+```json
+[
+  {
+    "id": "clx…",
+    "action": "PURCHASE_CREATE",
+    "entityType": "Purchase",
+    "entityId": "clx…",
+    "details": "{\"baseId\":\"…\",\"quantity\":50}",
+    "userId": "clx…",
+    "ipAddress": "::1",
+    "createdAt": "2026-09-26T06:00:00.000Z",
+    "user": { "name": "…", "email": "…", "role": "ADMIN" }
+  }
+]
+```
+
+Common `action` values: `LOGIN`, `REGISTER`, `PASSWORD_CHANGE`, `PURCHASE_*`, `TRANSFER_*`, `ASSIGNMENT_*`, `EXPENDITURE_*`.
+
+---
+
+## Assumptions & limitations
+
+- Password recovery is **change-password** (current + new), not email reset.
+- Admin accounts are seeded; public registration is limited to Base Commander and Logistics Officer.
+- Inventory mutations rely on Express + Prisma transactions; Supabase RLS is enabled to lock down the Data API (no anon policies).
 
 ## Data model (high level)
 
